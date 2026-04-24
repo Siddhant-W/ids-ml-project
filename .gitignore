@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ML Models (large binary files)
+backend/model/*.pkl
+
+# Database
+*.db
+*.sqlite3
+
+# Environment secrets
+.env
+*.env
+
+# Node
+node_modules/
+dist/
+
+# Dataset (large file)
+nsl_kdd_sample.csv
+
+# OS/IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

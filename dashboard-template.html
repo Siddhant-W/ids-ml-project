@@ -1,0 +1,1752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEGIS IDS · Intrusion Detection System</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --bg-deep:    #050810;
+  --bg-panel:   #0a0e1a;
+  --bg-card:    #0f1526;
+  --bg-hover:   #141c30;
+  --border:     #1e2a45;
+  --border-hi:  #2a3a60;
+  --accent:     #00d4ff;
+  --accent-2:   #0088ff;
+  --accent-dim: rgba(0,212,255,0.12);
+  --red:        #ff3860;
+  --red-dim:    rgba(255,56,96,0.12);
+  --orange:     #ff8c42;
+  --orange-dim: rgba(255,140,66,0.12);
+  --green:      #00e676;
+  --green-dim:  rgba(0,230,118,0.12);
+  --yellow:     #ffd600;
+  --yellow-dim: rgba(255,214,0,0.12);
+  --purple:     #9c6eff;
+  --purple-dim: rgba(156,110,255,0.12);
+  --text-1:     #e8edf8;
+  --text-2:     #8899bb;
+  --text-3:     #4a5878;
+  --mono:       'Space Mono', monospace;
+  --sans:       'Outfit', sans-serif;
+  --nav-w:      240px;
+  --radius:     12px;
+  --radius-sm:  8px;
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--sans);
+  background:var(--bg-deep);
+  color:var(--text-1);
+  min-height:100vh;
+  overflow-x:hidden;
+  display:flex;
+}
+
+/* ─── SIDEBAR ─────────────────────────────────────────── */
+.sidebar{
+  width:var(--nav-w);
+  min-height:100vh;
+  background:var(--bg-panel);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  position:fixed;
+  top:0;left:0;bottom:0;
+  z-index:100;
+  transition:transform .3s ease;
+}
+.sidebar-logo{
+  padding:24px 20px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.logo-icon{
+  width:36px;height:36px;
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  border-radius:10px;
+  display:grid;place-items:center;
+  font-size:16px;flex-shrink:0;
+  box-shadow:0 0 20px rgba(0,212,255,.3);
+}
+.logo-text{font-size:17px;font-weight:800;letter-spacing:2px;color:var(--text-1)}
+.logo-sub{font-size:9px;color:var(--accent);letter-spacing:3px;font-family:var(--mono);margin-top:1px}
+
+.nav-section-label{
+  font-size:9px;letter-spacing:3px;color:var(--text-3);
+  padding:20px 20px 6px;font-family:var(--mono);text-transform:uppercase;
+}
+.nav-item{
+  display:flex;align-items:center;gap:12px;
+  padding:10px 20px;
+  cursor:pointer;
+  border-radius:0;
+  font-size:13.5px;font-weight:500;
+  color:var(--text-2);
+  transition:all .2s;
+  position:relative;
+  border-left:3px solid transparent;
+  user-select:none;
+}
+.nav-item:hover{background:var(--bg-hover);color:var(--text-1)}
+.nav-item.active{
+  background:var(--accent-dim);
+  color:var(--accent);
+  border-left-color:var(--accent);
+}
+.nav-icon{width:18px;text-align:center;font-size:15px;flex-shrink:0}
+.nav-badge{
+  margin-left:auto;
+  background:var(--red);
+  color:#fff;
+  font-size:10px;font-weight:700;
+  padding:2px 6px;border-radius:20px;
+  font-family:var(--mono);
+}
+
+.sidebar-footer{
+  margin-top:auto;
+  padding:16px 20px;
+  border-top:1px solid var(--border);
+}
+.user-card{
+  display:flex;align-items:center;gap:10px;cursor:pointer;
+  padding:8px;border-radius:var(--radius-sm);transition:background .2s;
+}
+.user-card:hover{background:var(--bg-hover)}
+.avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent-2),var(--purple));
+  display:grid;place-items:center;font-size:13px;font-weight:700;flex-shrink:0;
+}
+.user-name{font-size:13px;font-weight:600}
+.user-role{font-size:10px;color:var(--accent);font-family:var(--mono);letter-spacing:1px}
+
+/* ─── MAIN CONTENT ────────────────────────────────────── */
+.main{
+  margin-left:var(--nav-w);
+  flex:1;
+  min-height:100vh;
+  display:flex;flex-direction:column;
+}
+
+/* ─── TOPBAR ──────────────────────────────────────────── */
+.topbar{
+  height:60px;
+  background:var(--bg-panel);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 28px;
+  gap:16px;
+  position:sticky;top:0;z-index:90;
+}
+.topbar-title{font-size:17px;font-weight:700;flex:1}
+.topbar-sub{font-size:11px;color:var(--text-3);font-family:var(--mono);margin-top:1px}
+
+.topbar-controls{display:flex;align-items:center;gap:10px}
+
+.status-indicator{
+  display:flex;align-items:center;gap:7px;
+  background:var(--green-dim);
+  border:1px solid rgba(0,230,118,.25);
+  border-radius:20px;
+  padding:5px 12px;
+  font-size:11px;color:var(--green);font-family:var(--mono);
+}
+.pulse{
+  width:7px;height:7px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 6px var(--green);
+  animation:pulse 1.8s infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+
+.icon-btn{
+  width:36px;height:36px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  background:var(--bg-card);
+  display:grid;place-items:center;cursor:pointer;
+  font-size:14px;transition:all .2s;color:var(--text-2);
+}
+.icon-btn:hover{border-color:var(--border-hi);color:var(--text-1);background:var(--bg-hover)}
+
+/* ─── PAGE AREA ───────────────────────────────────────── */
+.page-area{padding:24px 28px 40px;display:none}
+.page-area.active{display:block}
+
+/* ─── GRID UTILITIES ──────────────────────────────────── */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.grid-1-2{display:grid;grid-template-columns:1fr 2fr;gap:16px}
+.grid-2-1{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+
+/* ─── CARDS ───────────────────────────────────────────── */
+.card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px;
+}
+.card-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:18px;
+}
+.card-title{font-size:12px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text-2);font-family:var(--mono)}
+.card-action{font-size:11px;color:var(--accent);cursor:pointer;font-family:var(--mono)}
+
+/* ─── STAT CARDS ──────────────────────────────────────── */
+.stat-card{
+  background:var(--bg-card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:20px;
+  position:relative;overflow:hidden;
+  cursor:default;transition:border-color .2s;
+}
+.stat-card:hover{border-color:var(--border-hi)}
+.stat-card::before{
+  content:'';position:absolute;
+  top:0;right:0;width:80px;height:80px;border-radius:50%;
+  opacity:.06;transform:translate(20px,-20px);
+}
+.stat-card.red::before{background:var(--red)}
+.stat-card.green::before{background:var(--green)}
+.stat-card.orange::before{background:var(--orange)}
+.stat-card.accent::before{background:var(--accent)}
+
+.stat-label{font-size:10px;letter-spacing:2px;color:var(--text-3);font-family:var(--mono);text-transform:uppercase;margin-bottom:10px}
+.stat-value{font-size:32px;font-weight:800;line-height:1;margin-bottom:6px;font-family:var(--mono)}
+.stat-value.red{color:var(--red)}
+.stat-value.green{color:var(--green)}
+.stat-value.orange{color:var(--orange)}
+.stat-value.accent{color:var(--accent)}
+.stat-change{font-size:11px;color:var(--text-3)}
+.stat-change span{color:var(--red);font-weight:600}
+.stat-change span.up{color:var(--green)}
+.stat-icon{
+  position:absolute;top:18px;right:18px;
+  font-size:22px;opacity:.35;
+}
+
+/* ─── TABLES ──────────────────────────────────────────── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{
+  text-align:left;padding:8px 12px;
+  font-size:9px;letter-spacing:2px;color:var(--text-3);font-family:var(--mono);
+  text-transform:uppercase;border-bottom:1px solid var(--border);
+  font-weight:600;
+}
+td{padding:10px 12px;border-bottom:1px solid rgba(30,42,69,.5);color:var(--text-2)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(20,28,48,.6);color:var(--text-1)}
+.mono{font-family:var(--mono);font-size:11px}
+
+/* ─── BADGES ──────────────────────────────────────────── */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 10px;border-radius:20px;
+  font-size:10px;font-weight:700;font-family:var(--mono);
+  letter-spacing:.5px;
+}
+.badge.critical{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,56,96,.3)}
+.badge.high{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,140,66,.3)}
+.badge.medium{background:var(--yellow-dim);color:var(--yellow);border:1px solid rgba(255,214,0,.3)}
+.badge.low{background:var(--accent-dim);color:var(--accent);border:1px solid rgba(0,212,255,.3)}
+.badge.normal{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+.badge.blocked{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,56,96,.3)}
+.badge.allowed{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,230,118,.3)}
+
+/* ─── PROGRESS ────────────────────────────────────────── */
+.progress-bar{height:4px;background:var(--border);border-radius:4px;overflow:hidden;margin-top:6px}
+.progress-fill{height:100%;border-radius:4px;transition:width .8s ease}
+
+/* ─── ATTACK TYPE ROW ─────────────────────────────────── */
+.attack-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid rgba(30,42,69,.4)}
+.attack-row:last-child{border-bottom:none}
+.attack-name{font-size:12px;font-weight:500;flex:1}
+.attack-count{font-family:var(--mono);font-size:12px;color:var(--text-2);min-width:50px;text-align:right}
+.attack-pct{font-family:var(--mono);font-size:11px;color:var(--text-3);min-width:40px;text-align:right}
+
+/* ─── ALERT FEED ──────────────────────────────────────── */
+.alert-item{
+  display:flex;gap:14px;padding:12px 0;
+  border-bottom:1px solid rgba(30,42,69,.4);
+  animation:fadeIn .4s ease;
+}
+.alert-item:first-child{padding-top:0}
+.alert-item:last-child{border-bottom:none}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.alert-dot{
+  width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;
+}
+.alert-body{flex:1;min-width:0}
+.alert-title{font-size:13px;font-weight:600;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.alert-meta{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+.alert-time{font-size:10px;color:var(--text-3);font-family:var(--mono);white-space:nowrap;flex-shrink:0;margin-top:2px}
+
+/* ─── MINI SPARKLINE ──────────────────────────────────── */
+.sparkline{display:flex;align-items:flex-end;gap:2px;height:30px}
+.spark-bar{flex:1;border-radius:2px;transition:height .5s ease}
+
+/* ─── CHART CONTAINERS ────────────────────────────────── */
+.chart-wrap{position:relative;width:100%}
+.chart-wrap canvas{max-height:220px}
+.chart-wrap.tall canvas{max-height:280px}
+.chart-wrap.donut canvas{max-height:200px}
+
+/* ─── MAP PLACEHOLDER ─────────────────────────────────── */
+.geo-map{
+  background:radial-gradient(ellipse at center, #0d1629 0%,var(--bg-card) 70%);
+  border-radius:var(--radius-sm);
+  height:180px;
+  position:relative;
+  overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.geo-map::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='300' viewBox='0 0 600 300'%3E%3Cpath d='M100,120 L150,100 L200,130 L250,110 L300,140 L350,120 L400,150 L450,130 L500,160' stroke='%231e2a45' stroke-width='1' fill='none'/%3E%3Cpath d='M80,160 L140,140 L180,170 L230,150 L290,180 L340,160 L390,185 L440,165' stroke='%231e2a45' stroke-width='1' fill='none'/%3E%3C/svg%3E") center/cover;
+  opacity:.5;
+}
+.geo-dot{
+  position:absolute;width:8px;height:8px;border-radius:50%;
+  animation:geoPulse 2s infinite;
+}
+.geo-dot::after{
+  content:'';position:absolute;inset:-5px;border-radius:50%;
+  border:1px solid currentColor;opacity:.4;animation:geoRing 2s infinite;
+}
+@keyframes geoPulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes geoRing{0%{transform:scale(.5);opacity:.6}100%{transform:scale(2);opacity:0}}
+.geo-label{font-size:8px;font-family:var(--mono);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:var(--text-3);letter-spacing:2px}
+
+/* ─── TABS ────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{
+  padding:10px 18px;font-size:12px;font-weight:600;
+  color:var(--text-3);cursor:pointer;
+  border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:all .2s;font-family:var(--mono);letter-spacing:.5px;
+}
+.tab:hover{color:var(--text-2)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ─── FILTERS ─────────────────────────────────────────── */
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filter-btn{
+  padding:6px 14px;border-radius:20px;font-size:11px;font-weight:600;
+  font-family:var(--mono);cursor:pointer;letter-spacing:.5px;
+  border:1px solid var(--border);background:var(--bg-card);color:var(--text-3);
+  transition:all .2s;
+}
+.filter-btn:hover,.filter-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+
+/* ─── SEARCH ──────────────────────────────────────────── */
+.search-wrap{position:relative;flex:1;max-width:300px}
+.search-input{
+  width:100%;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:8px 12px 8px 34px;
+  color:var(--text-1);font-size:12px;font-family:var(--mono);
+  outline:none;transition:border-color .2s;
+}
+.search-input:focus{border-color:var(--accent)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:13px}
+
+/* ─── POLICY TABLE ────────────────────────────────────── */
+.policy-row{
+  display:flex;align-items:center;gap:12px;
+  padding:12px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);
+  background:var(--bg-card);margin-bottom:8px;
+  transition:border-color .2s;cursor:pointer;
+}
+.policy-row:hover{border-color:var(--border-hi)}
+.policy-toggle{
+  width:36px;height:20px;border-radius:10px;background:var(--border);
+  position:relative;cursor:pointer;flex-shrink:0;transition:background .2s;
+}
+.policy-toggle.on{background:var(--green)}
+.policy-toggle::after{
+  content:'';position:absolute;
+  width:14px;height:14px;border-radius:50%;background:#fff;
+  top:3px;left:3px;transition:transform .2s;
+  box-shadow:0 1px 3px rgba(0,0,0,.3);
+}
+.policy-toggle.on::after{transform:translateX(16px)}
+.policy-name{flex:1;font-size:13px;font-weight:500}
+.policy-type{font-size:10px;color:var(--text-3);font-family:var(--mono)}
+
+/* ─── MODAL ───────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  display:none;place-items:center;z-index:200;backdrop-filter:blur(4px);
+}
+.modal-overlay.open{display:grid}
+.modal{
+  background:var(--bg-card);border:1px solid var(--border-hi);
+  border-radius:var(--radius);padding:28px;max-width:520px;width:90%;
+  animation:modalIn .3s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:none}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-size:16px;font-weight:700}
+.modal-close{cursor:pointer;color:var(--text-3);font-size:20px;transition:color .2s}
+.modal-close:hover{color:var(--text-1)}
+.modal-body{color:var(--text-2);font-size:13.5px;line-height:1.7}
+.modal-field{margin-bottom:14px}
+.modal-label{font-size:10px;letter-spacing:2px;color:var(--text-3);font-family:var(--mono);margin-bottom:5px;text-transform:uppercase}
+.modal-value{font-family:var(--mono);font-size:12px;color:var(--text-1);background:var(--bg-panel);padding:8px 12px;border-radius:var(--radius-sm);border:1px solid var(--border)}
+
+/* ─── FORM ELEMENTS ───────────────────────────────────── */
+.form-input{
+  width:100%;background:var(--bg-panel);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:9px 12px;
+  color:var(--text-1);font-size:13px;font-family:var(--sans);
+  outline:none;transition:border-color .2s;
+}
+.form-input:focus{border-color:var(--accent)}
+.form-select{
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a5878' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 12px center;
+  padding-right:32px;cursor:pointer;
+}
+
+.btn{
+  padding:9px 20px;border-radius:var(--radius-sm);
+  font-size:12px;font-weight:700;letter-spacing:.5px;font-family:var(--mono);
+  cursor:pointer;border:none;transition:all .2s;
+}
+.btn-primary{background:var(--accent);color:var(--bg-deep)}
+.btn-primary:hover{background:#33ddff;box-shadow:0 0 16px rgba(0,212,255,.3)}
+.btn-ghost{background:transparent;color:var(--text-2);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--border-hi);color:var(--text-1)}
+.btn-danger{background:var(--red);color:#fff}
+
+/* ─── TIMELINE ────────────────────────────────────────── */
+.timeline-item{display:flex;gap:14px;padding:10px 0;position:relative}
+.timeline-line{
+  position:absolute;left:14px;top:28px;bottom:-10px;
+  width:1px;background:var(--border);
+}
+.timeline-item:last-child .timeline-line{display:none}
+.tl-dot{
+  width:28px;height:28px;border-radius:50%;
+  display:grid;place-items:center;font-size:12px;flex-shrink:0;
+  position:relative;z-index:1;
+}
+.tl-content{flex:1;padding-top:3px}
+.tl-title{font-size:13px;font-weight:600;margin-bottom:2px}
+.tl-meta{font-size:11px;color:var(--text-3);font-family:var(--mono)}
+
+/* ─── LOGIN SCREEN ────────────────────────────────────── */
+#login-screen{
+  position:fixed;inset:0;
+  background:var(--bg-deep);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:999;
+}
+.login-box{
+  background:var(--bg-panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:40px;
+  width:100%;max-width:380px;
+}
+.login-logo{text-align:center;margin-bottom:32px}
+.login-logo .logo-icon{width:56px;height:56px;font-size:24px;margin:0 auto 12px;box-shadow:0 0 40px rgba(0,212,255,.3)}
+.login-title{font-size:22px;font-weight:800;letter-spacing:2px;margin-bottom:3px}
+.login-sub{font-size:11px;color:var(--accent);font-family:var(--mono);letter-spacing:3px}
+.login-field{margin-bottom:16px}
+.login-label{font-size:10px;letter-spacing:2px;color:var(--text-3);font-family:var(--mono);margin-bottom:6px;display:block;text-transform:uppercase}
+.login-error{color:var(--red);font-size:12px;font-family:var(--mono);margin-bottom:12px;display:none}
+.login-roles{display:flex;gap:6px;margin-bottom:20px}
+.role-chip{
+  flex:1;padding:6px;border-radius:var(--radius-sm);
+  border:1px solid var(--border);cursor:pointer;
+  text-align:center;font-size:10px;font-family:var(--mono);
+  color:var(--text-3);transition:all .2s;
+}
+.role-chip.selected{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+
+/* ─── TOAST ───────────────────────────────────────────── */
+.toast-area{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px}
+.toast{
+  background:var(--bg-panel);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:12px 16px;
+  font-size:12px;font-family:var(--mono);
+  display:flex;align-items:center;gap:10px;
+  min-width:220px;max-width:320px;
+  animation:toastIn .3s ease;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.toast.success{border-left:3px solid var(--green)}
+.toast.error{border-left:3px solid var(--red)}
+.toast.info{border-left:3px solid var(--accent)}
+
+/* ─── MISC ────────────────────────────────────────────── */
+.section-gap{margin-bottom:16px}
+.flex{display:flex}
+.items-center{align-items:center}
+.gap-8{gap:8px}
+.gap-12{gap:12px}
+.gap-16{gap:16px}
+.ml-auto{margin-left:auto}
+.text-accent{color:var(--accent)}
+.text-red{color:var(--red)}
+.text-green{color:var(--green)}
+.text-muted{color:var(--text-3)}
+.fw-700{font-weight:700}
+.mono{font-family:var(--mono)}
+.mt-4{margin-top:4px}
+.mb-16{margin-bottom:16px}
+hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:10px;font-family:var(--mono);background:var(--border);color:var(--text-2)}
+
+/* ─── LOADING BAR ─────────────────────────────────────── */
+.loading-bar{
+  height:2px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:16px;
+}
+.loading-fill{
+  height:100%;width:0%;background:linear-gradient(90deg,var(--accent-2),var(--accent));
+  border-radius:2px;transition:width .4s ease;
+}
+
+/* ─── RESPONSIVE TWEAKS ───────────────────────────────── */
+@media(max-width:1100px){
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .grid-3{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:none}
+  .main{margin-left:0}
+  .grid-4,.grid-3,.grid-2,.grid-1-2,.grid-2-1{grid-template-columns:1fr}
+}
+
+/* ─── SCAN ANIMATION ──────────────────────────────────── */
+.scan-line{
+  position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:inherit;
+}
+.scan-line::after{
+  content:'';position:absolute;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,212,255,.3),transparent);
+  animation:scanAnim 3s linear infinite;top:0;
+}
+@keyframes scanAnim{0%{top:0}100%{top:100%}}
+
+/* ─── NETWORK TOPOLOGY ────────────────────────────────── */
+.topo-svg{width:100%;height:180px}
+
+/* ─── THREAT LEVEL DIAL ───────────────────────────────── */
+.threat-dial{display:flex;flex-direction:column;align-items:center;gap:8px}
+.dial-svg{width:140px;height:80px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon">🛡</div>
+      <div class="login-title">AEGIS IDS</div>
+      <div class="login-sub">SECURITY PLATFORM v2.4</div>
+    </div>
+    <div class="login-field">
+      <label class="login-label">Username</label>
+      <input class="form-input" id="login-user" type="text" placeholder="admin@aegis.sec" value="admin@aegis.sec">
+    </div>
+    <div class="login-field">
+      <label class="login-label">Password</label>
+      <input class="form-input" id="login-pass" type="password" placeholder="••••••••" value="password">
+    </div>
+    <div class="login-label" style="margin-bottom:8px">Role</div>
+    <div class="login-roles">
+      <div class="role-chip selected" onclick="selectRole(this,'Admin')">Admin</div>
+      <div class="role-chip" onclick="selectRole(this,'Analyst')">Analyst</div>
+      <div class="role-chip" onclick="selectRole(this,'Viewer')">Viewer</div>
+    </div>
+    <div class="login-error" id="login-error">⚠ Invalid credentials</div>
+    <button class="btn btn-primary" style="width:100%;font-size:13px;padding:12px" onclick="doLogin()">AUTHENTICATE →</button>
+    <div style="text-align:center;font-size:10px;color:var(--text-3);font-family:var(--mono);margin-top:16px">Demo: any credentials · Role controls access</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">🛡</div>
+    <div>
+      <div class="logo-text">AEGIS</div>
+      <div class="logo-sub">IDS PLATFORM</div>
+    </div>
+  </div>
+
+  <div class="nav-section-label">Monitor</div>
+  <div class="nav-item active" onclick="navTo(this,'dashboard')"><span class="nav-icon">⬡</span>Dashboard<span class="nav-badge" id="alert-badge">3</span></div>
+  <div class="nav-item" onclick="navTo(this,'traffic')"><span class="nav-icon">◈</span>Traffic Monitor</div>
+  <div class="nav-item" onclick="navTo(this,'alerts')"><span class="nav-icon">◉</span>Alerts &amp; Events</div>
+  <div class="nav-item" onclick="navTo(this,'threats')"><span class="nav-icon">◎</span>Threat Intel</div>
+
+  <div class="nav-section-label">Management</div>
+  <div class="nav-item" onclick="navTo(this,'policy')"><span class="nav-icon">◧</span>Policy Manager</div>
+  <div class="nav-item" onclick="navTo(this,'ml-engine')"><span class="nav-icon">◈</span>ML Engine</div>
+  <div class="nav-item" onclick="navTo(this,'reports')"><span class="nav-icon">◫</span>Reports</div>
+
+  <div class="nav-section-label">System</div>
+  <div class="nav-item" id="users-nav" onclick="navTo(this,'users')"><span class="nav-icon">◐</span>Users &amp; RBAC</div>
+  <div class="nav-item" onclick="navTo(this,'settings')"><span class="nav-icon">◑</span>Settings</div>
+
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="avatar" id="user-avatar">A</div>
+      <div>
+        <div class="user-name" id="user-name">Admin</div>
+        <div class="user-role" id="user-role">SYSTEM ADMIN</div>
+      </div>
+      <span style="margin-left:auto;font-size:16px;cursor:pointer;color:var(--text-3)" onclick="doLogout()" title="Logout">⏻</span>
+    </div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">Overview Dashboard</div>
+      <div class="topbar-sub" id="page-time">Loading...</div>
+    </div>
+    <div class="topbar-controls">
+      <div class="status-indicator"><div class="pulse"></div>MONITORING ACTIVE</div>
+      <div class="icon-btn" title="Refresh" onclick="refreshData()">↻</div>
+      <div class="icon-btn" title="Notifications" onclick="navTo(document.querySelector('[onclick*=alerts]'),'alerts')">🔔</div>
+      <div class="icon-btn" title="Full screen" onclick="document.documentElement.requestFullscreen()">⛶</div>
+    </div>
+  </div>
+
+  <!-- ══ DASHBOARD PAGE ══════════════════════════════════ -->
+  <div class="page-area active" id="page-dashboard">
+
+    <!-- STAT CARDS -->
+    <div class="grid-4 section-gap" id="stats-row">
+      <div class="stat-card red">
+        <div class="scan-line"></div>
+        <div class="stat-label">Active Threats</div>
+        <div class="stat-value red" id="s-threats">24</div>
+        <div class="stat-change"><span>↑ +6</span> from last hour</div>
+        <div class="stat-icon">⚠</div>
+        <div class="sparkline" id="sp-threats" style="margin-top:10px"></div>
+      </div>
+      <div class="stat-card green">
+        <div class="scan-line"></div>
+        <div class="stat-label">Detection Rate</div>
+        <div class="stat-value green" id="s-rate">98.7%</div>
+        <div class="stat-change"><span class="up">↑ +0.3%</span> vs yesterday</div>
+        <div class="stat-icon">✓</div>
+        <div class="sparkline" id="sp-rate" style="margin-top:10px"></div>
+      </div>
+      <div class="stat-card orange">
+        <div class="scan-line"></div>
+        <div class="stat-label">False Positives</div>
+        <div class="stat-value orange" id="s-fp">2.1%</div>
+        <div class="stat-change"><span class="up">↓ -0.4%</span> improvement</div>
+        <div class="stat-icon">◈</div>
+        <div class="sparkline" id="sp-fp" style="margin-top:10px"></div>
+      </div>
+      <div class="stat-card accent">
+        <div class="scan-line"></div>
+        <div class="stat-label">Packets/sec</div>
+        <div class="stat-value accent" id="s-pps">14.2K</div>
+        <div class="stat-change"><span class="up">↑ +2K</span> current load</div>
+        <div class="stat-icon">≋</div>
+        <div class="sparkline" id="sp-pps" style="margin-top:10px"></div>
+      </div>
+    </div>
+
+    <!-- CHART ROW -->
+    <div class="grid-2-1 section-gap">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Network Traffic — Malicious vs Normal</span>
+          <span class="card-action" onclick="exportChart()">EXPORT ↗</span>
+        </div>
+        <div class="chart-wrap tall">
+          <canvas id="trafficChart"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Attack Distribution</span>
+        </div>
+        <div class="chart-wrap donut" style="display:flex;align-items:center;justify-content:center">
+          <canvas id="attackPieChart"></canvas>
+        </div>
+        <div style="margin-top:12px">
+          <div class="attack-row">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0"></div>
+            <div class="attack-name">DoS / DDoS</div>
+            <div class="attack-count">1,247</div>
+            <div class="attack-pct">41%</div>
+          </div>
+          <div class="attack-row">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--orange);flex-shrink:0"></div>
+            <div class="attack-name">Probe / Scan</div>
+            <div class="attack-count">863</div>
+            <div class="attack-pct">28%</div>
+          </div>
+          <div class="attack-row">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--purple);flex-shrink:0"></div>
+            <div class="attack-name">R2L Attack</div>
+            <div class="attack-count">521</div>
+            <div class="attack-pct">17%</div>
+          </div>
+          <div class="attack-row">
+            <div style="width:8px;height:8px;border-radius:50%;background:var(--yellow);flex-shrink:0"></div>
+            <div class="attack-name">U2R Attack</div>
+            <div class="attack-count">432</div>
+            <div class="attack-pct">14%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALERTS + GEO + TIMELINE -->
+    <div class="grid-3 section-gap">
+      <!-- LIVE ALERTS -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Live Alerts</span>
+          <span class="card-action" onclick="navTo(document.querySelector('[onclick*=alerts]'),'alerts')">VIEW ALL</span>
+        </div>
+        <div id="live-alerts-feed">
+          <div class="alert-item">
+            <div class="alert-dot" style="background:var(--red)"></div>
+            <div class="alert-body">
+              <div class="alert-title">DoS — SYN Flood Detected</div>
+              <div class="alert-meta">SRC: 192.168.12.44 → 10.0.0.1:80</div>
+            </div>
+            <div class="alert-time">just now</div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot" style="background:var(--orange)"></div>
+            <div class="alert-body">
+              <div class="alert-title">Port Scan — Probe Activity</div>
+              <div class="alert-meta">SRC: 203.0.113.14 · 22 ports swept</div>
+            </div>
+            <div class="alert-time">2m ago</div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot" style="background:var(--purple)"></div>
+            <div class="alert-body">
+              <div class="alert-title">R2L — Brute Force SSH</div>
+              <div class="alert-meta">SRC: 45.33.32.156 · 847 attempts</div>
+            </div>
+            <div class="alert-time">8m ago</div>
+          </div>
+          <div class="alert-item">
+            <div class="alert-dot" style="background:var(--yellow)"></div>
+            <div class="alert-body">
+              <div class="alert-title">U2R — Privilege Escalation</div>
+              <div class="alert-meta">Host: web-server-03 · UID 0</div>
+            </div>
+            <div class="alert-time">15m ago</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- THREAT LEVEL + GEO -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">Threat Level</span></div>
+        <div class="threat-dial">
+          <svg class="dial-svg" viewBox="0 0 140 80">
+            <defs>
+              <linearGradient id="dialGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#00e676"/>
+                <stop offset="50%" stop-color="#ffd600"/>
+                <stop offset="100%" stop-color="#ff3860"/>
+              </linearGradient>
+            </defs>
+            <path d="M15,70 A55,55 0 0,1 125,70" fill="none" stroke="#1e2a45" stroke-width="10" stroke-linecap="round"/>
+            <path d="M15,70 A55,55 0 0,1 125,70" fill="none" stroke="url(#dialGrad)" stroke-width="10" stroke-linecap="round" stroke-dasharray="172" stroke-dashoffset="50" opacity=".8"/>
+            <!-- Needle -->
+            <line id="dial-needle" x1="70" y1="70" x2="30" y2="20" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="70" cy="70" r="5" fill="var(--bg-card)" stroke="var(--accent)" stroke-width="2"/>
+          </svg>
+          <div style="text-align:center">
+            <div style="font-size:20px;font-weight:800;color:var(--orange);font-family:var(--mono)">HIGH</div>
+            <div style="font-size:11px;color:var(--text-3);font-family:var(--mono);margin-top:2px">Threat Index: 7.2/10</div>
+          </div>
+        </div>
+        <hr class="divider">
+        <div class="geo-map" style="margin-top:4px">
+          <div class="scan-line"></div>
+          <div class="geo-dot" style="color:var(--red);top:30%;left:20%"></div>
+          <div class="geo-dot" style="color:var(--orange);top:45%;left:65%;animation-delay:.6s"></div>
+          <div class="geo-dot" style="color:var(--red);top:55%;left:80%;animation-delay:1.2s"></div>
+          <div class="geo-dot" style="color:var(--yellow);top:25%;left:45%;animation-delay:.3s"></div>
+          <div class="geo-label">ATTACK ORIGIN MAP</div>
+        </div>
+      </div>
+
+      <!-- DETECTION METRICS -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">ML Model Performance</span></div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div>
+            <div class="flex items-center gap-8 mb-4"><span style="font-size:12px;font-weight:500">Accuracy</span><span class="mono" style="margin-left:auto;font-size:12px;color:var(--green)">98.7%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:98.7%;background:var(--green)"></div></div>
+          </div>
+          <div>
+            <div class="flex items-center gap-8 mb-4"><span style="font-size:12px;font-weight:500">Precision</span><span class="mono" style="margin-left:auto;font-size:12px;color:var(--accent)">96.3%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:96.3%;background:var(--accent)"></div></div>
+          </div>
+          <div>
+            <div class="flex items-center gap-8 mb-4"><span style="font-size:12px;font-weight:500">Recall</span><span class="mono" style="margin-left:auto;font-size:12px;color:var(--accent)">97.1%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:97.1%;background:var(--accent-2)"></div></div>
+          </div>
+          <div>
+            <div class="flex items-center gap-8 mb-4"><span style="font-size:12px;font-weight:500">F1-Score</span><span class="mono" style="margin-left:auto;font-size:12px;color:var(--purple)">96.7%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:96.7%;background:var(--purple)"></div></div>
+          </div>
+          <div>
+            <div class="flex items-center gap-8 mb-4"><span style="font-size:12px;font-weight:500">False Positive Rate</span><span class="mono" style="margin-left:auto;font-size:12px;color:var(--orange)">2.1%</span></div>
+            <div class="progress-bar"><div class="progress-fill" style="width:2.1%;background:var(--orange)"></div></div>
+          </div>
+        </div>
+        <hr class="divider">
+        <div style="font-size:11px;color:var(--text-3);font-family:var(--mono)">Model: Random Forest · Dataset: NSL-KDD</div>
+        <div style="font-size:11px;color:var(--text-3);font-family:var(--mono);margin-top:3px">Last trained: 2026-03-29 · 120K samples</div>
+      </div>
+    </div>
+
+    <!-- BOTTOM CHARTS -->
+    <div class="grid-2 section-gap">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Hourly Attack Volume</span></div>
+        <div class="chart-wrap"><canvas id="hourlyChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Protocol Distribution</span></div>
+        <div class="chart-wrap"><canvas id="protocolChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TRAFFIC PAGE ════════════════════════════════════ -->
+  <div class="page-area" id="page-traffic">
+    <div class="filter-bar mb-16">
+      <div class="search-wrap"><span class="search-icon">🔍</span><input class="search-input" type="text" placeholder="Filter by IP, port, protocol..." oninput="filterTraffic(this.value)"></div>
+      <button class="filter-btn active" onclick="toggleFilter(this,'ALL')">ALL</button>
+      <button class="filter-btn" onclick="toggleFilter(this,'TCP')">TCP</button>
+      <button class="filter-btn" onclick="toggleFilter(this,'UDP')">UDP</button>
+      <button class="filter-btn" onclick="toggleFilter(this,'ICMP')">ICMP</button>
+      <button class="filter-btn" onclick="toggleFilter(this,'HTTP')">HTTP</button>
+      <button class="filter-btn ml-auto btn btn-ghost" onclick="showToast('Traffic capture paused','info')">⏸ PAUSE</button>
+      <button class="btn btn-primary" onclick="exportCSV()">⬇ EXPORT CSV</button>
+    </div>
+
+    <div class="grid-2 section-gap">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Live Packet Rate</span></div>
+        <div class="chart-wrap"><canvas id="packetRateChart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Bandwidth Utilization</span></div>
+        <div class="chart-wrap"><canvas id="bandwidthChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Packet Capture — Live Feed</span>
+        <span class="mono" style="font-size:11px;color:var(--green)" id="pkt-counter">↑ 14,231 pkt/s</span>
+      </div>
+      <div class="table-wrap">
+        <table id="traffic-table">
+          <thead><tr>
+            <th>#</th><th>Timestamp</th><th>Src IP</th><th>Dst IP</th>
+            <th>Proto</th><th>Src Port</th><th>Dst Port</th>
+            <th>Length</th><th>Classification</th><th>Action</th>
+          </tr></thead>
+          <tbody id="traffic-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ALERTS PAGE ════════════════════════════════════ -->
+  <div class="page-area" id="page-alerts">
+    <div class="filter-bar mb-16">
+      <button class="filter-btn active" onclick="filterAlerts(this,'ALL')">ALL</button>
+      <button class="filter-btn" onclick="filterAlerts(this,'CRITICAL')">🔴 CRITICAL</button>
+      <button class="filter-btn" onclick="filterAlerts(this,'HIGH')">🟠 HIGH</button>
+      <button class="filter-btn" onclick="filterAlerts(this,'MEDIUM')">🟡 MEDIUM</button>
+      <button class="filter-btn" onclick="filterAlerts(this,'LOW')">🔵 LOW</button>
+      <div class="search-wrap ml-auto"><span class="search-icon">🔍</span><input class="search-input" type="text" placeholder="Search alerts..."></div>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table id="alerts-table">
+          <thead><tr>
+            <th>ID</th><th>Timestamp</th><th>Severity</th>
+            <th>Type</th><th>Source IP</th><th>Destination</th>
+            <th>Status</th><th>Action</th>
+          </tr></thead>
+          <tbody id="alerts-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ THREATS PAGE ════════════════════════════════════ -->
+  <div class="page-area" id="page-threats">
+    <div class="grid-3 section-gap">
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-header"><span class="card-title">Threat Intelligence Feed</span><span class="badge normal">LIVE</span></div>
+        <div class="chart-wrap tall"><canvas id="threatHeatChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2 section-gap">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Top Attacker IPs</span></div>
+        <table><thead><tr><th>IP Address</th><th>Country</th><th>Attacks</th><th>Severity</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">45.33.32.156</td><td>🇺🇸 US</td><td class="mono">847</td><td><span class="badge critical">CRITICAL</span></td><td><span class="badge blocked">BLOCKED</span></td></tr>
+          <tr><td class="mono">203.0.113.14</td><td>🇨🇳 CN</td><td class="mono">623</td><td><span class="badge high">HIGH</span></td><td><span class="badge blocked">BLOCKED</span></td></tr>
+          <tr><td class="mono">198.51.100.7</td><td>🇷🇺 RU</td><td class="mono">441</td><td><span class="badge high">HIGH</span></td><td><span class="badge blocked">BLOCKED</span></td></tr>
+          <tr><td class="mono">192.0.2.100</td><td>🇳🇬 NG</td><td class="mono">287</td><td><span class="badge medium">MEDIUM</span></td><td><span class="badge allowed">MONITORED</span></td></tr>
+          <tr><td class="mono">10.0.2.55</td><td>🏠 LAN</td><td class="mono">124</td><td><span class="badge medium">MEDIUM</span></td><td><span class="badge allowed">MONITORED</span></td></tr>
+        </tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Attack Timeline</span></div>
+        <div>
+          <div class="timeline-item">
+            <div class="timeline-line"></div>
+            <div class="tl-dot" style="background:var(--red-dim);color:var(--red)">⚠</div>
+            <div class="tl-content">
+              <div class="tl-title">SYN Flood — DoS Attack</div>
+              <div class="tl-meta">192.168.12.44 · 14:32:01 · Blocked</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-line"></div>
+            <div class="tl-dot" style="background:var(--orange-dim);color:var(--orange)">◈</div>
+            <div class="tl-content">
+              <div class="tl-title">Port Sweep Detected</div>
+              <div class="tl-meta">203.0.113.14 · 14:28:17 · Logged</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-line"></div>
+            <div class="tl-dot" style="background:var(--purple-dim);color:var(--purple)">◎</div>
+            <div class="tl-content">
+              <div class="tl-title">Brute Force SSH</div>
+              <div class="tl-meta">45.33.32.156 · 14:21:55 · Blocked</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-line"></div>
+            <div class="tl-dot" style="background:var(--yellow-dim);color:var(--yellow)">◐</div>
+            <div class="tl-content">
+              <div class="tl-title">Privilege Escalation</div>
+              <div class="tl-meta">web-server-03 · 14:15:02 · Investigating</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="tl-dot" style="background:var(--accent-dim);color:var(--accent)">◉</div>
+            <div class="tl-content">
+              <div class="tl-title">Anomaly Detected — DNS</div>
+              <div class="tl-meta">10.0.1.12 · 14:08:43 · Logged</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ POLICY PAGE ════════════════════════════════════ -->
+  <div class="page-area" id="page-policy">
+    <div class="grid-1-2 section-gap">
+      <!-- POLICY LIST -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Security Policies</span>
+          <button class="btn btn-primary" style="padding:6px 14px;font-size:10px" onclick="openPolicyModal()">+ ADD RULE</button>
+        </div>
+        <div id="policy-list">
+          <div class="policy-row"><div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">Block SYN Flood Attacks</div><div class="policy-type">FIREWALL · CRITICAL</div></div></div>
+          <div class="policy-row"><div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">SSH Brute Force Mitigation</div><div class="policy-type">IPS · HIGH</div></div></div>
+          <div class="policy-row"><div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">Port Scan Detection</div><div class="policy-type">IDS · MEDIUM</div></div></div>
+          <div class="policy-row"><div class="policy-toggle" onclick="togglePolicy(this)"></div><div><div class="policy-name">DNS Anomaly Alerting</div><div class="policy-type">MONITOR · LOW</div></div></div>
+          <div class="policy-row"><div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">HTTP Flood Rate Limit</div><div class="policy-type">WAF · HIGH</div></div></div>
+          <div class="policy-row"><div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">Zero-Day Heuristic Alert</div><div class="policy-type">ML · CRITICAL</div></div></div>
+          <div class="policy-row"><div class="policy-toggle" onclick="togglePolicy(this)"></div><div><div class="policy-name">ICMP Flood Detection</div><div class="policy-type">FIREWALL · MEDIUM</div></div></div>
+          <div class="policy-row"><div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">R2L Session Anomaly</div><div class="policy-type">IDS · HIGH</div></div></div>
+        </div>
+      </div>
+
+      <!-- POLICY STATS + EDITOR -->
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Policy Overview</span></div>
+          <div class="grid-2" style="gap:12px">
+            <div style="text-align:center;padding:12px;background:var(--bg-panel);border-radius:var(--radius-sm)">
+              <div style="font-size:28px;font-weight:800;color:var(--green);font-family:var(--mono)">6</div>
+              <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);letter-spacing:2px">ACTIVE</div>
+            </div>
+            <div style="text-align:center;padding:12px;background:var(--bg-panel);border-radius:var(--radius-sm)">
+              <div style="font-size:28px;font-weight:800;color:var(--text-3);font-family:var(--mono)">2</div>
+              <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);letter-spacing:2px">DISABLED</div>
+            </div>
+          </div>
+          <div class="chart-wrap" style="margin-top:16px"><canvas id="policyChart"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Rule Simulator</span></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div><label class="login-label">Test IP Address</label><input class="form-input" type="text" placeholder="e.g. 192.168.1.1" id="sim-ip"></div>
+            <div><label class="login-label">Protocol</label>
+              <select class="form-input form-select" id="sim-proto">
+                <option>TCP</option><option>UDP</option><option>ICMP</option><option>HTTP</option>
+              </select>
+            </div>
+            <div><label class="login-label">Packet Rate (pps)</label><input class="form-input" type="number" placeholder="e.g. 5000" id="sim-rate"></div>
+            <button class="btn btn-primary" onclick="runSimulation()">▶ SIMULATE RULE MATCH</button>
+            <div id="sim-result" style="display:none;padding:10px;border-radius:var(--radius-sm);font-size:12px;font-family:var(--mono)"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ ML ENGINE PAGE ═════════════════════════════════ -->
+  <div class="page-area" id="page-ml-engine">
+    <div class="grid-3 section-gap">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Active Models</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="padding:12px;border-radius:var(--radius-sm);border:1px solid rgba(0,230,118,.3);background:var(--green-dim)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="color:var(--green)">●</span>
+              <span style="font-size:13px;font-weight:600">Random Forest</span>
+              <span class="badge normal" style="margin-left:auto">PRIMARY</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);font-family:var(--mono)">Accuracy: 98.7% · Trees: 100 · Depth: 15</div>
+          </div>
+          <div style="padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-panel)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="color:var(--accent)">●</span>
+              <span style="font-size:13px;font-weight:600">Decision Tree</span>
+              <span class="badge low" style="margin-left:auto">BACKUP</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);font-family:var(--mono)">Accuracy: 96.1% · Max Depth: 20</div>
+          </div>
+          <div style="padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-panel)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="color:var(--purple)">●</span>
+              <span style="font-size:13px;font-weight:600">SVM Classifier</span>
+              <span class="tag">EXPERIMENTAL</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);font-family:var(--mono)">Accuracy: 94.8% · Kernel: RBF</div>
+          </div>
+          <div style="padding:12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-panel)">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+              <span style="color:var(--text-3)">●</span>
+              <span style="font-size:13px;font-weight:600">LSTM Deep Net</span>
+              <span class="tag">PLANNED</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-3);font-family:var(--mono)">Future: Sequential analysis</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Confusion Matrix</span></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center">
+          <div style="padding:20px;background:var(--green-dim);border-radius:var(--radius-sm);border:1px solid rgba(0,230,118,.3)">
+            <div style="font-size:24px;font-weight:800;color:var(--green);font-family:var(--mono)">59,832</div>
+            <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);margin-top:4px">TRUE POSITIVE</div>
+          </div>
+          <div style="padding:20px;background:var(--orange-dim);border-radius:var(--radius-sm);border:1px solid rgba(255,140,66,.3)">
+            <div style="font-size:24px;font-weight:800;color:var(--orange);font-family:var(--mono)">1,268</div>
+            <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);margin-top:4px">FALSE POSITIVE</div>
+          </div>
+          <div style="padding:20px;background:var(--red-dim);border-radius:var(--radius-sm);border:1px solid rgba(255,56,96,.3)">
+            <div style="font-size:24px;font-weight:800;color:var(--red);font-family:var(--mono)">843</div>
+            <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);margin-top:4px">FALSE NEGATIVE</div>
+          </div>
+          <div style="padding:20px;background:var(--accent-dim);border-radius:var(--radius-sm);border:1px solid rgba(0,212,255,.3)">
+            <div style="font-size:24px;font-weight:800;color:var(--accent);font-family:var(--mono)">58,057</div>
+            <div style="font-size:10px;color:var(--text-3);font-family:var(--mono);margin-top:4px">TRUE NEGATIVE</div>
+          </div>
+        </div>
+        <hr class="divider">
+        <div style="font-size:11px;color:var(--text-3);font-family:var(--mono)">Dataset: NSL-KDD · 120,000 test samples · Fold: 5</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Training Controls</span></div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div><label class="login-label">Dataset</label>
+            <select class="form-input form-select"><option>NSL-KDD (120K samples)</option><option>CICIDS-2018</option><option>UNSW-NB15</option><option>Custom Upload</option></select>
+          </div>
+          <div><label class="login-label">Algorithm</label>
+            <select class="form-input form-select"><option>Random Forest</option><option>Decision Tree</option><option>SVM</option><option>Naive Bayes</option><option>KNN</option></select>
+          </div>
+          <div><label class="login-label">Train/Test Split</label>
+            <input class="form-input" type="range" min="60" max="90" value="80" oninput="document.getElementById('split-val').textContent=this.value+'% / '+(100-this.value)+'%'">
+            <div style="font-size:11px;color:var(--accent);font-family:var(--mono);margin-top:4px" id="split-val">80% / 20%</div>
+          </div>
+          <div id="train-progress" style="display:none">
+            <div style="font-size:11px;color:var(--text-3);font-family:var(--mono);margin-bottom:6px" id="train-status">Training...</div>
+            <div class="loading-bar"><div class="loading-fill" id="train-fill"></div></div>
+          </div>
+          <button class="btn btn-primary" onclick="startTraining()">⚙ TRAIN MODEL</button>
+          <button class="btn btn-ghost" onclick="showToast('Model evaluation report ready','info')">📊 EVALUATE MODEL</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Feature Importance (Random Forest)</span></div>
+      <div class="chart-wrap tall"><canvas id="featureChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- ══ REPORTS PAGE ═══════════════════════════════════ -->
+  <div class="page-area" id="page-reports">
+    <div class="grid-3 section-gap">
+      <div class="card" style="grid-column:1/-1">
+        <div class="card-header">
+          <span class="card-title">30-Day Security Summary</span>
+          <div class="flex gap-8">
+            <button class="btn btn-ghost" style="padding:6px 12px;font-size:10px" onclick="showToast('Generating PDF report...','info')">📄 PDF</button>
+            <button class="btn btn-primary" style="padding:6px 12px;font-size:10px" onclick="exportCSV()">⬇ EXPORT</button>
+          </div>
+        </div>
+        <div class="chart-wrap tall"><canvas id="summaryChart"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-3 section-gap">
+      <div class="card"><div class="card-header"><span class="card-title">Total Incidents</span></div><div class="stat-value accent" style="font-size:42px">3,063</div><div class="stat-change" style="margin-top:6px"><span>↑ +12%</span> vs last month</div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Blocked Threats</span></div><div class="stat-value green" style="font-size:42px">2,841</div><div class="stat-change" style="margin-top:6px"><span class="up">92.7%</span> block rate</div></div>
+      <div class="card"><div class="card-header"><span class="card-title">Avg Response Time</span></div><div class="stat-value orange" style="font-size:42px">1.4s</div><div class="stat-change" style="margin-top:6px"><span class="up">↓ -0.3s</span> improvement</div></div>
+    </div>
+  </div>
+
+  <!-- ══ USERS PAGE ═════════════════════════════════════ -->
+  <div class="page-area" id="page-users">
+    <div class="grid-2-1 section-gap">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">User Management</span>
+          <button class="btn btn-primary" style="padding:6px 14px;font-size:10px" onclick="showToast('Add user dialog — connect to backend','info')">+ ADD USER</button>
+        </div>
+        <table>
+          <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="width:28px;height:28px;font-size:11px">A</div>Admin User</div></td><td class="mono">admin@aegis.sec</td><td><span class="badge critical">ADMIN</span></td><td class="mono">Just now</td><td><span class="badge normal">ACTIVE</span></td><td><button class="btn btn-ghost" style="padding:3px 10px;font-size:10px">EDIT</button></td></tr>
+            <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,var(--orange),var(--red))">S</div>Sarah Chen</div></td><td class="mono">sarah@aegis.sec</td><td><span class="badge high">ANALYST</span></td><td class="mono">2h ago</td><td><span class="badge normal">ACTIVE</span></td><td><button class="btn btn-ghost" style="padding:3px 10px;font-size:10px">EDIT</button></td></tr>
+            <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,var(--purple),var(--accent-2))">M</div>Mark Reeves</div></td><td class="mono">mark@aegis.sec</td><td><span class="badge medium">ANALYST</span></td><td class="mono">1d ago</td><td><span class="badge normal">ACTIVE</span></td><td><button class="btn btn-ghost" style="padding:3px 10px;font-size:10px">EDIT</button></td></tr>
+            <tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="width:28px;height:28px;font-size:11px;background:linear-gradient(135deg,var(--green),var(--accent))">V</div>Viewer Demo</div></td><td class="mono">viewer@aegis.sec</td><td><span class="badge low">VIEWER</span></td><td class="mono">3d ago</td><td><span class="badge medium">INACTIVE</span></td><td><button class="btn btn-ghost" style="padding:3px 10px;font-size:10px">EDIT</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Role Permissions (RBAC)</span></div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="padding:12px;border-radius:var(--radius-sm);background:var(--bg-panel);border:1px solid var(--red);border-opacity:.3">
+            <div style="font-weight:700;color:var(--red);font-size:12px;margin-bottom:8px;font-family:var(--mono)">ADMIN</div>
+            <div style="font-size:12px;color:var(--text-2);line-height:1.8">
+              ✓ Full dashboard access<br>✓ Manage users &amp; roles<br>✓ Edit &amp; create policies<br>✓ Train ML models<br>✓ Export all reports<br>✓ System settings
+            </div>
+          </div>
+          <div style="padding:12px;border-radius:var(--radius-sm);background:var(--bg-panel);border:1px solid rgba(255,140,66,.3)">
+            <div style="font-weight:700;color:var(--orange);font-size:12px;margin-bottom:8px;font-family:var(--mono)">ANALYST</div>
+            <div style="font-size:12px;color:var(--text-2);line-height:1.8">
+              ✓ View dashboard &amp; traffic<br>✓ Manage alerts &amp; threats<br>✓ View &amp; enable policies<br>✗ Create/delete policies<br>✗ Manage users<br>✗ System settings
+            </div>
+          </div>
+          <div style="padding:12px;border-radius:var(--radius-sm);background:var(--bg-panel);border:1px solid rgba(0,212,255,.2)">
+            <div style="font-weight:700;color:var(--accent);font-size:12px;margin-bottom:8px;font-family:var(--mono)">VIEWER</div>
+            <div style="font-size:12px;color:var(--text-2);line-height:1.8">
+              ✓ View dashboard only<br>✓ View alerts (read-only)<br>✗ All management actions<br>✗ Policy changes<br>✗ Export data<br>✗ Settings
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS PAGE ══════════════════════════════════ -->
+  <div class="page-area" id="page-settings">
+    <div class="grid-2 section-gap">
+      <div class="card">
+        <div class="card-header"><span class="card-title">System Configuration</span></div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div><label class="login-label">Network Interface</label><input class="form-input" value="eth0" type="text"></div>
+          <div><label class="login-label">Capture Mode</label><select class="form-input form-select"><option>Promiscuous Mode</option><option>Normal Mode</option></select></div>
+          <div><label class="login-label">Alert Email</label><input class="form-input" value="soc@organization.com" type="email"></div>
+          <div><label class="login-label">Retention Period (days)</label><input class="form-input" value="90" type="number"></div>
+          <div><label class="login-label">ML Detection Threshold</label>
+            <input type="range" class="form-input" min="50" max="99" value="80" oninput="document.getElementById('thresh-val').textContent=this.value+'%'">
+            <div style="font-size:11px;color:var(--accent);font-family:var(--mono);margin-top:4px" id="thresh-val">80%</div>
+          </div>
+          <button class="btn btn-primary" onclick="showToast('Settings saved successfully','success')">💾 SAVE SETTINGS</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">Integrations</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="policy-row"><div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">Syslog Export (UDP 514)</div><div class="policy-type">SIEM INTEGRATION</div></div></div>
+          <div class="policy-row"><div class="policy-toggle" onclick="togglePolicy(this)"></div><div><div class="policy-name">Splunk Forwarder</div><div class="policy-type">LOG MANAGEMENT</div></div></div>
+          <div class="policy-row"><div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">Email SMTP Alerts</div><div class="policy-type">NOTIFICATIONS</div></div></div>
+          <div class="policy-row"><div class="policy-toggle" onclick="togglePolicy(this)"></div><div><div class="policy-name">Slack Webhooks</div><div class="policy-type">TEAM ALERTS</div></div></div>
+          <div class="policy-row"><div class="policy-toggle" onclick="togglePolicy(this)"></div><div><div class="policy-name">PagerDuty Integration</div><div class="policy-type">ON-CALL ESCALATION</div></div></div>
+          <div class="policy-row"><div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">REST API Endpoint</div><div class="policy-type">3RD PARTY ACCESS</div></div></div>
+        </div>
+        <hr class="divider">
+        <div style="font-size:11px;color:var(--text-3);font-family:var(--mono)">API Key: <span style="color:var(--accent)">aeg_••••••••••••4f2a</span> <span style="color:var(--text-3);cursor:pointer" onclick="showToast('API key copied','info')">[COPY]</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERT DETAIL MODAL -->
+<div class="modal-overlay" id="alert-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-alert-title">Alert Details</div>
+      <span class="modal-close" onclick="closeModal()">✕</span>
+    </div>
+    <div id="modal-alert-body"></div>
+    <div style="display:flex;gap:8px;margin-top:20px">
+      <button class="btn btn-danger" onclick="closeModal();showToast('Threat blocked and IP banned','success')">🚫 BLOCK IP</button>
+      <button class="btn btn-ghost" onclick="closeModal();showToast('Alert acknowledged','info')">✓ ACKNOWLEDGE</button>
+      <button class="btn btn-ghost" onclick="closeModal()">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- POLICY MODAL -->
+<div class="modal-overlay" id="policy-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Add Security Rule</div>
+      <span class="modal-close" onclick="document.getElementById('policy-modal').classList.remove('open')">✕</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div><label class="login-label">Rule Name</label><input class="form-input" placeholder="e.g. Block ICMP Flood" id="new-rule-name"></div>
+      <div><label class="login-label">Rule Type</label><select class="form-input form-select"><option>FIREWALL</option><option>IDS</option><option>IPS</option><option>WAF</option><option>ML</option></select></div>
+      <div><label class="login-label">Severity</label><select class="form-input form-select"><option>CRITICAL</option><option>HIGH</option><option>MEDIUM</option><option>LOW</option></select></div>
+      <div><label class="login-label">Condition</label><input class="form-input" placeholder="e.g. pps > 10000 AND proto == ICMP"></div>
+      <div><label class="login-label">Action</label><select class="form-input form-select"><option>BLOCK</option><option>ALERT</option><option>LOG</option><option>QUARANTINE</option></select></div>
+      <button class="btn btn-primary" onclick="addPolicy()">+ CREATE RULE</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST AREA -->
+<div class="toast-area" id="toast-area"></div>
+
+<script>
+// ─── STATE ─────────────────────────────────────────────────
+let currentRole = 'Admin';
+let charts = {};
+let trafficInterval, alertInterval, statInterval;
+const alertsData = [];
+const trafficData = [];
+
+// ─── LOGIN ─────────────────────────────────────────────────
+function selectRole(el, role) {
+  document.querySelectorAll('.role-chip').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  currentRole = role;
+}
+
+function doLogin() {
+  const u = document.getElementById('login-user').value;
+  const p = document.getElementById('login-pass').value;
+  if (!u || !p) {
+    document.getElementById('login-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('user-name').textContent = currentRole + ' User';
+  document.getElementById('user-role').textContent = currentRole.toUpperCase();
+  document.getElementById('user-avatar').textContent = currentRole[0];
+
+  // RBAC — hide Users nav if not admin
+  if (currentRole !== 'Admin') {
+    document.getElementById('users-nav').style.display = 'none';
+  }
+
+  initApp();
+}
+
+function doLogout() {
+  clearInterval(trafficInterval);
+  clearInterval(alertInterval);
+  clearInterval(statInterval);
+  document.getElementById('login-screen').style.display = 'flex';
+}
+
+// ─── NAVIGATION ─────────────────────────────────────────────
+function navTo(el, page) {
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  if (el) el.classList.add('active');
+  document.querySelectorAll('.page-area').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+
+  const titles = {
+    dashboard:'Overview Dashboard', traffic:'Traffic Monitor',
+    alerts:'Alerts & Events', threats:'Threat Intelligence',
+    policy:'Policy Manager (SEPM)', 'ml-engine':'ML Engine',
+    reports:'Reports & Analytics', users:'Users & RBAC',
+    settings:'System Settings'
+  };
+  document.getElementById('page-title').textContent = titles[page] || page;
+
+  if (page === 'traffic') buildTrafficTable();
+  if (page === 'alerts') buildAlertsTable();
+}
+
+// ─── CLOCK ─────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('page-time').textContent =
+    'Last updated: ' + new Date().toLocaleString('en-US',{
+      weekday:'short',year:'numeric',month:'short',day:'numeric',
+      hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false
+    });
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ─── CHARTS ────────────────────────────────────────────────
+const palette = {
+  accent:'#00d4ff', accent2:'#0088ff', red:'#ff3860',
+  orange:'#ff8c42', green:'#00e676', yellow:'#ffd600', purple:'#9c6eff'
+};
+const baseChartOpts = {
+  responsive: true,
+  maintainAspectRatio: true,
+  plugins: { legend:{ labels:{ color:'#8899bb', font:{family:"'Space Mono',monospace",size:11}, boxWidth:10 } } },
+  scales: {
+    x:{ ticks:{color:'#4a5878',font:{size:10,family:"'Space Mono',monospace"}}, grid:{color:'rgba(30,42,69,.6)'} },
+    y:{ ticks:{color:'#4a5878',font:{size:10,family:"'Space Mono',monospace"}}, grid:{color:'rgba(30,42,69,.6)'} }
+  }
+};
+
+function mk(id,cfg){ const c=document.getElementById(id); if(!c)return; charts[id]=new Chart(c,cfg); }
+function destroyChart(id){ if(charts[id]){charts[id].destroy();delete charts[id];} }
+
+function buildCharts() {
+  const labels24 = Array.from({length:24},(_,i)=>`${String(i).padStart(2,'0')}:00`);
+  const labels7 = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const rnd=(n,spread)=>Array.from({length:n},()=>Math.round(Math.random()*spread));
+
+  // Traffic Chart
+  mk('trafficChart',{type:'line',data:{
+    labels:labels24,
+    datasets:[
+      {label:'Normal',data:rnd(24,8000),borderColor:palette.accent,backgroundColor:'rgba(0,212,255,.06)',fill:true,tension:.4,pointRadius:2},
+      {label:'Malicious',data:rnd(24,1500),borderColor:palette.red,backgroundColor:'rgba(255,56,96,.06)',fill:true,tension:.4,pointRadius:2}
+    ]
+  },options:{...baseChartOpts}});
+
+  // Attack Pie
+  mk('attackPieChart',{type:'doughnut',data:{
+    labels:['DoS/DDoS','Probe','R2L','U2R'],
+    datasets:[{data:[41,28,17,14],backgroundColor:['rgba(255,56,96,.8)','rgba(255,140,66,.8)','rgba(156,110,255,.8)','rgba(255,214,0,.8)'],borderWidth:0,hoverOffset:8}]
+  },options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},cutout:'68%'}});
+
+  // Hourly
+  mk('hourlyChart',{type:'bar',data:{
+    labels:labels24,
+    datasets:[{label:'Attacks',data:rnd(24,200),backgroundColor:'rgba(255,56,96,.6)',borderRadius:4}]
+  },options:{...baseChartOpts}});
+
+  // Protocol
+  mk('protocolChart',{type:'bar',data:{
+    labels:['TCP','UDP','ICMP','HTTP','HTTPS','DNS','SSH','FTP'],
+    datasets:[{label:'Packets (K)',data:[42,28,15,35,51,12,8,3],backgroundColor:['rgba(0,212,255,.7)','rgba(0,136,255,.7)','rgba(156,110,255,.7)','rgba(0,230,118,.7)','rgba(0,212,255,.5)','rgba(255,214,0,.7)','rgba(255,140,66,.7)','rgba(255,56,96,.7)'],borderRadius:4}]
+  },options:{...baseChartOpts,plugins:{legend:{display:false}}}});
+
+  // Traffic page charts
+  mk('packetRateChart',{type:'line',data:{
+    labels:Array.from({length:30},(_,i)=>'-'+((30-i)*2)+'s'),
+    datasets:[{label:'Packets/s',data:rnd(30,20000),borderColor:palette.accent,backgroundColor:'rgba(0,212,255,.05)',fill:true,tension:.4,pointRadius:0}]
+  },options:{...baseChartOpts,animation:{duration:0}}});
+
+  mk('bandwidthChart',{type:'line',data:{
+    labels:Array.from({length:30},(_,i)=>'-'+((30-i)*2)+'s'),
+    datasets:[
+      {label:'Inbound (Mbps)',data:rnd(30,1000),borderColor:palette.green,backgroundColor:'rgba(0,230,118,.05)',fill:true,tension:.4,pointRadius:0},
+      {label:'Outbound (Mbps)',data:rnd(30,800),borderColor:palette.orange,backgroundColor:'rgba(255,140,66,.05)',fill:true,tension:.4,pointRadius:0}
+    ]
+  },options:{...baseChartOpts,animation:{duration:0}}});
+
+  // Threat Heat
+  mk('threatHeatChart',{type:'bar',data:{
+    labels:labels7,
+    datasets:[
+      {label:'DoS',data:rnd(7,500),backgroundColor:'rgba(255,56,96,.7)',borderRadius:4,stack:'s'},
+      {label:'Probe',data:rnd(7,300),backgroundColor:'rgba(255,140,66,.7)',borderRadius:4,stack:'s'},
+      {label:'R2L',data:rnd(7,200),backgroundColor:'rgba(156,110,255,.7)',borderRadius:4,stack:'s'},
+      {label:'U2R',data:rnd(7,150),backgroundColor:'rgba(255,214,0,.7)',borderRadius:4,stack:'s'}
+    ]
+  },options:{...baseChartOpts}});
+
+  // Policy
+  mk('policyChart',{type:'doughnut',data:{
+    labels:['Firewall','IDS','IPS','WAF','ML'],
+    datasets:[{data:[2,2,1,1,2],backgroundColor:['rgba(255,56,96,.7)','rgba(0,212,255,.7)','rgba(255,140,66,.7)','rgba(0,230,118,.7)','rgba(156,110,255,.7)'],borderWidth:0}]
+  },options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#8899bb',font:{size:10,family:"'Space Mono',monospace"}}}},cutout:'60%'}});
+
+  // Feature Importance
+  mk('featureChart',{type:'bar',data:{
+    labels:['src_bytes','duration','dst_bytes','land','wrong_fragment','urgent','hot','num_failed_logins','logged_in','num_compromised'],
+    datasets:[{label:'Importance',data:[0.18,0.14,0.12,0.10,0.09,0.08,0.08,0.07,0.07,0.07],backgroundColor:'rgba(0,212,255,.7)',borderRadius:4}]
+  },options:{...baseChartOpts,indexAxis:'y',plugins:{legend:{display:false}}}});
+
+  // Summary
+  mk('summaryChart',{type:'line',data:{
+    labels:Array.from({length:30},(_,i)=>`Mar ${i+1}`),
+    datasets:[
+      {label:'Total Incidents',data:rnd(30,150),borderColor:palette.red,backgroundColor:'rgba(255,56,96,.06)',fill:true,tension:.4,pointRadius:2},
+      {label:'Blocked',data:rnd(30,140),borderColor:palette.green,backgroundColor:'rgba(0,230,118,.06)',fill:true,tension:.4,pointRadius:2},
+      {label:'False Positives',data:rnd(30,15),borderColor:palette.orange,backgroundColor:'rgba(255,140,66,.06)',fill:true,tension:.4,pointRadius:2}
+    ]
+  },options:{...baseChartOpts}});
+}
+
+// ─── SPARKLINES ─────────────────────────────────────────────
+function buildSparklines() {
+  const ids = ['sp-threats','sp-rate','sp-fp','sp-pps'];
+  const colors = ['var(--red)','var(--green)','var(--orange)','var(--accent)'];
+  ids.forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = Array.from({length:10}, () => {
+      const h = 8 + Math.random() * 22;
+      return `<div class="spark-bar" style="height:${h}px;background:${colors[i]};opacity:.7"></div>`;
+    }).join('');
+  });
+}
+
+// ─── LIVE DATA SIMULATION ───────────────────────────────────
+function generateAlert() {
+  const types = [
+    {type:'DoS — SYN Flood',sev:'CRITICAL',proto:'TCP',sport:'*',dport:'80'},
+    {type:'Port Scan — Probe',sev:'HIGH',proto:'TCP',sport:'*',dport:'22'},
+    {type:'Brute Force SSH',sev:'HIGH',proto:'TCP',sport:'*',dport:'22'},
+    {type:'HTTP Flood',sev:'HIGH',proto:'HTTP',sport:'*',dport:'443'},
+    {type:'DNS Amplification',sev:'MEDIUM',proto:'UDP',sport:'*',dport:'53'},
+    {type:'ICMP Flood',sev:'MEDIUM',proto:'ICMP',sport:'*',dport:'*'},
+    {type:'U2R Escalation',sev:'CRITICAL',proto:'SSH',sport:'*',dport:'22'},
+    {type:'R2L Access',sev:'HIGH',proto:'FTP',sport:'*',dport:'21'},
+  ];
+  const ips = ['45.33.32.156','203.0.113.14','198.51.100.7','192.0.2.100','10.0.2.55','192.168.12.44'];
+  const pick = types[Math.floor(Math.random()*types.length)];
+  const src = ips[Math.floor(Math.random()*ips.length)];
+  return {
+    id: 'ALT-' + String(Math.floor(Math.random()*90000)+10000),
+    ts: new Date().toLocaleTimeString('en-US',{hour12:false}),
+    sev: pick.sev,
+    type: pick.type,
+    src,
+    dst: '10.0.0.' + Math.floor(Math.random()*50+1),
+    proto: pick.proto,
+    status: Math.random() > 0.3 ? 'BLOCKED' : 'DETECTED',
+  };
+}
+
+function generatePacket() {
+  const protos = ['TCP','UDP','ICMP','HTTP','HTTPS','DNS','SSH'];
+  const ips = ['192.168.1.'+Math.floor(Math.random()*254+1), '10.0.0.'+Math.floor(Math.random()*50+1), '203.0.113.'+Math.floor(Math.random()*100), '45.33.'+Math.floor(Math.random()*100)+'.'+Math.floor(Math.random()*255)];
+  const proto = protos[Math.floor(Math.random()*protos.length)];
+  const isMalicious = Math.random() < 0.12;
+  return {
+    ts: new Date().toLocaleTimeString('en-US',{hour12:false}),
+    src: ips[Math.floor(Math.random()*ips.length)],
+    dst: ips[Math.floor(Math.random()*ips.length)],
+    proto,
+    sport: Math.floor(Math.random()*65000+1),
+    dport: [80,443,22,21,53,8080,3389][Math.floor(Math.random()*7)],
+    len: Math.floor(Math.random()*1400+40),
+    cls: isMalicious ? (Math.random()<0.5?'DoS':'Probe') : 'NORMAL',
+  };
+}
+
+function startLiveData() {
+  for(let i=0;i<50;i++) trafficData.push(generatePacket());
+  for(let i=0;i<20;i++) alertsData.push(generateAlert());
+
+  trafficInterval = setInterval(() => {
+    const pkt = generatePacket();
+    trafficData.unshift(pkt);
+    if (trafficData.length > 200) trafficData.pop();
+
+    if (document.getElementById('page-traffic').classList.contains('active')) {
+      buildTrafficTable();
+      document.getElementById('pkt-counter').textContent = '↑ ' + (Math.floor(Math.random()*3000)+13000).toLocaleString() + ' pkt/s';
+    }
+
+    // Update live chart
+    if (charts['packetRateChart']) {
+      const d = charts['packetRateChart'].data.datasets[0].data;
+      d.shift(); d.push(Math.round(Math.random()*20000));
+      charts['packetRateChart'].update('none');
+    }
+    if (charts['bandwidthChart']) {
+      charts['bandwidthChart'].data.datasets.forEach(ds => {
+        ds.data.shift(); ds.data.push(Math.round(Math.random()*1000));
+      });
+      charts['bandwidthChart'].update('none');
+    }
+  }, 1500);
+
+  alertInterval = setInterval(() => {
+    if (Math.random() < 0.4) {
+      const a = generateAlert();
+      alertsData.unshift(a);
+      if (alertsData.length > 100) alertsData.pop();
+
+      // Update live alerts feed
+      const feed = document.getElementById('live-alerts-feed');
+      if (feed) {
+        const colors = {CRITICAL:'var(--red)',HIGH:'var(--orange)',MEDIUM:'var(--yellow)',LOW:'var(--accent)'};
+        const el = document.createElement('div');
+        el.className = 'alert-item';
+        el.innerHTML = `<div class="alert-dot" style="background:${colors[a.sev]||'var(--accent)'}"></div>
+          <div class="alert-body"><div class="alert-title">${a.type}</div><div class="alert-meta">SRC: ${a.src} → ${a.dst}</div></div>
+          <div class="alert-time">just now</div>`;
+        feed.insertBefore(el, feed.firstChild);
+        while (feed.children.length > 4) feed.removeChild(feed.lastChild);
+      }
+
+      // Badge
+      const criticals = alertsData.filter(a=>a.sev==='CRITICAL').length;
+      document.getElementById('alert-badge').textContent = Math.min(criticals, 99);
+
+      if (document.getElementById('page-alerts').classList.contains('active')) buildAlertsTable();
+    }
+  }, 3000);
+
+  statInterval = setInterval(() => {
+    document.getElementById('s-threats').textContent = Math.floor(Math.random()*15+15);
+    document.getElementById('s-pps').textContent = (Math.floor(Math.random()*5+12)) + '.' + Math.floor(Math.random()*9) + 'K';
+    buildSparklines();
+  }, 5000);
+}
+
+// ─── TRAFFIC TABLE ─────────────────────────────────────────
+function buildTrafficTable(filter='') {
+  const tbody = document.getElementById('traffic-tbody');
+  if (!tbody) return;
+  const data = filter
+    ? trafficData.filter(p => p.src.includes(filter)||p.dst.includes(filter)||p.proto.toLowerCase().includes(filter.toLowerCase()))
+    : trafficData.slice(0, 50);
+
+  tbody.innerHTML = data.slice(0, 50).map((p, i) => {
+    const cls = p.cls === 'NORMAL' ? 'normal' : p.cls === 'DoS' ? 'critical' : 'high';
+    return `<tr>
+      <td class="mono">${i+1}</td>
+      <td class="mono">${p.ts}</td>
+      <td class="mono">${p.src}</td>
+      <td class="mono">${p.dst}</td>
+      <td><span class="tag">${p.proto}</span></td>
+      <td class="mono">${p.sport}</td>
+      <td class="mono">${p.dport}</td>
+      <td class="mono">${p.len}B</td>
+      <td><span class="badge ${cls}">${p.cls}</span></td>
+      <td><button class="btn btn-ghost" style="padding:3px 8px;font-size:10px" onclick="showPacketDetail(${i})">INSPECT</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTraffic(val) { buildTrafficTable(val); }
+
+function showPacketDetail(i) {
+  const p = trafficData[i];
+  if (!p) return;
+  document.getElementById('modal-alert-title').textContent = 'Packet Inspection — ' + p.proto;
+  document.getElementById('modal-alert-body').innerHTML = `
+    <div class="modal-field"><div class="modal-label">Source</div><div class="modal-value">${p.src}:${p.sport}</div></div>
+    <div class="modal-field"><div class="modal-label">Destination</div><div class="modal-value">${p.dst}:${p.dport}</div></div>
+    <div class="modal-field"><div class="modal-label">Protocol</div><div class="modal-value">${p.proto}</div></div>
+    <div class="modal-field"><div class="modal-label">Length</div><div class="modal-value">${p.len} bytes</div></div>
+    <div class="modal-field"><div class="modal-label">Classification</div><div class="modal-value">${p.cls}</div></div>
+    <div class="modal-field"><div class="modal-label">Timestamp</div><div class="modal-value">${p.ts}</div></div>
+  `;
+  document.getElementById('alert-modal').classList.add('open');
+}
+
+// ─── ALERTS TABLE ──────────────────────────────────────────
+function buildAlertsTable(filter='ALL') {
+  const tbody = document.getElementById('alerts-tbody');
+  if (!tbody) return;
+  const data = filter === 'ALL' ? alertsData : alertsData.filter(a => a.sev === filter);
+  const sevClass = {CRITICAL:'critical',HIGH:'high',MEDIUM:'medium',LOW:'low'};
+  tbody.innerHTML = data.slice(0, 50).map(a => `<tr>
+    <td class="mono">${a.id}</td>
+    <td class="mono">${a.ts}</td>
+    <td><span class="badge ${sevClass[a.sev]||'low'}">${a.sev}</span></td>
+    <td>${a.type}</td>
+    <td class="mono">${a.src}</td>
+    <td class="mono">${a.dst}</td>
+    <td><span class="badge ${a.status==='BLOCKED'?'blocked':'normal'}">${a.status}</span></td>
+    <td><button class="btn btn-ghost" style="padding:3px 8px;font-size:10px" onclick="openAlertDetail('${a.id}','${a.type}','${a.src}','${a.dst}','${a.sev}','${a.status}','${a.proto}','${a.ts}')">DETAIL</button></td>
+  </tr>`).join('');
+}
+
+function filterAlerts(el, val) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  buildAlertsTable(val);
+}
+
+function openAlertDetail(id, type, src, dst, sev, status, proto, ts) {
+  const sevClass = {CRITICAL:'critical',HIGH:'high',MEDIUM:'medium',LOW:'low'};
+  document.getElementById('modal-alert-title').textContent = `🚨 ${type}`;
+  document.getElementById('modal-alert-body').innerHTML = `
+    <div class="modal-field"><div class="modal-label">Alert ID</div><div class="modal-value">${id}</div></div>
+    <div class="modal-field"><div class="modal-label">Severity</div><div class="modal-value"><span class="badge ${sevClass[sev]||'low'}">${sev}</span></div></div>
+    <div class="modal-field"><div class="modal-label">Source IP</div><div class="modal-value">${src}</div></div>
+    <div class="modal-field"><div class="modal-label">Destination IP</div><div class="modal-value">${dst}</div></div>
+    <div class="modal-field"><div class="modal-label">Protocol</div><div class="modal-value">${proto}</div></div>
+    <div class="modal-field"><div class="modal-label">Status</div><div class="modal-value"><span class="badge ${status==='BLOCKED'?'blocked':'normal'}">${status}</span></div></div>
+    <div class="modal-field"><div class="modal-label">Timestamp</div><div class="modal-value">${ts}</div></div>
+    <div class="modal-field"><div class="modal-label">ML Confidence</div><div class="modal-value">${(Math.random()*10+88).toFixed(1)}%</div></div>
+    <div class="modal-field"><div class="modal-label">Recommended Action</div><div class="modal-value">${status==='BLOCKED'?'IP already blocked. Monitor for continued activity.':'Investigate and block if confirmed malicious.'}</div></div>
+  `;
+  document.getElementById('alert-modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('alert-modal').classList.remove('open'); }
+
+// ─── POLICY ────────────────────────────────────────────────
+function togglePolicy(el) {
+  el.classList.toggle('on');
+  showToast('Policy ' + (el.classList.contains('on') ? 'enabled' : 'disabled'), el.classList.contains('on') ? 'success' : 'info');
+}
+
+function openPolicyModal() {
+  if (currentRole === 'Viewer') { showToast('Viewers cannot create policies','error'); return; }
+  document.getElementById('policy-modal').classList.add('open');
+}
+
+function addPolicy() {
+  const name = document.getElementById('new-rule-name').value;
+  if (!name) { showToast('Enter a rule name','error'); return; }
+  const row = document.createElement('div');
+  row.className = 'policy-row';
+  row.innerHTML = `<div class="policy-toggle on" onclick="togglePolicy(this)"></div><div><div class="policy-name">${name}</div><div class="policy-type">CUSTOM · NEW</div></div>`;
+  document.getElementById('policy-list').insertBefore(row, document.getElementById('policy-list').firstChild);
+  document.getElementById('policy-modal').classList.remove('open');
+  document.getElementById('new-rule-name').value = '';
+  showToast('Rule "' + name + '" created', 'success');
+}
+
+// ─── SIMULATION ────────────────────────────────────────────
+function runSimulation() {
+  const ip = document.getElementById('sim-ip').value || '192.168.1.1';
+  const proto = document.getElementById('sim-proto').value;
+  const rate = parseInt(document.getElementById('sim-rate').value) || 1000;
+  const result = document.getElementById('sim-result');
+  const hit = rate > 5000 || proto === 'ICMP';
+  result.style.display = 'block';
+  result.style.background = hit ? 'var(--red-dim)' : 'var(--green-dim)';
+  result.style.border = `1px solid ${hit ? 'rgba(255,56,96,.3)' : 'rgba(0,230,118,.3)'}`;
+  result.style.color = hit ? 'var(--red)' : 'var(--green)';
+  result.innerHTML = hit
+    ? `🚫 RULE MATCH — "${ip}" would be BLOCKED\n→ Matched: ${rate>5000?'HTTP Flood Rate Limit':'ICMP Flood Detection'}`
+    : `✓ NO MATCH — "${ip}" traffic would be ALLOWED\n→ ${proto} @ ${rate}pps is within thresholds`;
+  result.style.whiteSpace = 'pre';
+}
+
+// ─── ML TRAINING ───────────────────────────────────────────
+function startTraining() {
+  if (currentRole === 'Viewer' || currentRole === 'Analyst') {
+    showToast('Insufficient permissions to train models', 'error'); return;
+  }
+  const prog = document.getElementById('train-progress');
+  const fill = document.getElementById('train-fill');
+  const status = document.getElementById('train-status');
+  prog.style.display = 'block';
+  let pct = 0;
+  const stages = ['Preprocessing data...','Extracting features...','Training model...','Evaluating performance...','Saving model...'];
+  let s = 0;
+  const iv = setInterval(() => {
+    pct += Math.random() * 8 + 2;
+    if (pct >= 100) { pct = 100; clearInterval(iv); showToast('Model trained! Accuracy: 98.7%','success'); prog.style.display='none'; }
+    fill.style.width = pct + '%';
+    if (s < stages.length && pct > (s+1)*20) { status.textContent = stages[s]; s++; }
+  }, 300);
+}
+
+// ─── REFRESH ────────────────────────────────────────────────
+function refreshData() {
+  showToast('Data refreshed','info');
+  Object.keys(charts).forEach(id => {
+    const c = charts[id];
+    if (c.data.datasets) {
+      c.data.datasets.forEach(ds => {
+        ds.data = ds.data.map(() => Math.round(Math.random()*ds.data.reduce((a,b)=>a+b,0)/ds.data.length*1.5));
+      });
+      c.update();
+    }
+  });
+}
+
+function exportCSV() {
+  const csv = 'Timestamp,Source IP,Dest IP,Protocol,Classification\n' +
+    trafficData.slice(0,100).map(p=>`${p.ts},${p.src},${p.dst},${p.proto},${p.cls}`).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'aegis-traffic-export.csv';
+  a.click();
+  showToast('CSV export downloaded', 'success');
+}
+
+function exportChart() { showToast('Chart export initiated', 'info'); }
+
+// ─── TOAST ─────────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const area = document.getElementById('toast-area');
+  const icons = {success:'✓',error:'⚠',info:'ℹ'};
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${icons[type]||'ℹ'}</span>${msg}`;
+  area.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(20px)'; t.style.transition='all .3s';
+    setTimeout(()=>t.remove(), 300); }, 3000);
+}
+
+function toggleFilter(el, val) {
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  filterTraffic(val === 'ALL' ? '' : val);
+}
+
+// ─── INIT ──────────────────────────────────────────────────
+function initApp() {
+  setTimeout(() => {
+    buildCharts();
+    buildSparklines();
+    startLiveData();
+    showToast('AEGIS IDS online — Monitoring active', 'success');
+  }, 100);
+}
+</script>
+</body>
+</html>
